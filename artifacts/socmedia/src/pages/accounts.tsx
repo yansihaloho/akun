@@ -142,6 +142,7 @@ export default function Accounts() {
   const [search, setSearch] = useState("");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [belumTerjualOnly, setBelumTerjualOnly] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -171,13 +172,19 @@ export default function Accounts() {
   };
 
   const filtered = (accounts ?? []).filter((a) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      a.nama.toLowerCase().includes(q) ||
-      a.email.toLowerCase().includes(q) ||
-      (a.uid ?? "").toLowerCase().includes(q)
-    );
+    if (search) {
+      const q = search.toLowerCase();
+      const match =
+        a.nama.toLowerCase().includes(q) ||
+        a.email.toLowerCase().includes(q) ||
+        (a.uid ?? "").toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (belumTerjualOnly) {
+      const soldCode = (a as unknown as AccountWithSold).soldOrderCode;
+      if (soldCode) return false;
+    }
+    return true;
   });
 
   const allSelected = filtered.length > 0 && filtered.every((a) => selectedIds.has(a.id));
@@ -406,6 +413,17 @@ export default function Accounts() {
             ))}
           </SelectContent>
         </Select>
+        <button
+          onClick={() => setBelumTerjualOnly((v) => !v)}
+          className={`h-8 px-3 rounded-md border text-xs font-medium transition-colors flex items-center gap-1.5 flex-shrink-0 ${
+            belumTerjualOnly
+              ? "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
+              : "bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${belumTerjualOnly ? "bg-white" : "bg-emerald-500"}`} />
+          Belum Terjual
+        </button>
       </div>
 
       {someSelected && (
