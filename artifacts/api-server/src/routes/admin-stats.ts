@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, count, sum, and } from "drizzle-orm";
+import { eq, count, sum } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { productsTable, ordersTable } from "@workspace/db";
 import { requireAdmin } from "../lib/requireAdmin";
@@ -8,35 +8,21 @@ const router = Router();
 
 router.get("/admin/stats", requireAdmin, async (req, res) => {
   try {
-    const [productStats] = await db
-      .select({
-        total: count(),
-      })
-      .from(productsTable);
-
-    const [activeStats] = await db
-      .select({ total: count() })
-      .from(productsTable)
-      .where(eq(productsTable.isActive, true));
-
-    const [orderStats] = await db
-      .select({ total: count() })
-      .from(ordersTable);
-
-    const [pendingStats] = await db
-      .select({ total: count() })
-      .from(ordersTable)
-      .where(eq(ordersTable.status, "paid"));
-
-    const [deliveredStats] = await db
-      .select({ total: count() })
-      .from(ordersTable)
-      .where(eq(ordersTable.status, "delivered"));
-
-    const [revenueStats] = await db
-      .select({ total: sum(ordersTable.totalPrice) })
-      .from(ordersTable)
-      .where(eq(ordersTable.status, "delivered"));
+    const [
+      [productStats],
+      [activeStats],
+      [orderStats],
+      [pendingStats],
+      [deliveredStats],
+      [revenueStats],
+    ] = await Promise.all([
+      db.select({ total: count() }).from(productsTable),
+      db.select({ total: count() }).from(productsTable).where(eq(productsTable.isActive, true)),
+      db.select({ total: count() }).from(ordersTable),
+      db.select({ total: count() }).from(ordersTable).where(eq(ordersTable.status, "paid")),
+      db.select({ total: count() }).from(ordersTable).where(eq(ordersTable.status, "delivered")),
+      db.select({ total: sum(ordersTable.totalPrice) }).from(ordersTable).where(eq(ordersTable.status, "delivered")),
+    ]);
 
     res.json({
       totalProducts: productStats?.total ?? 0,

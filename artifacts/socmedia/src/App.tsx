@@ -46,7 +46,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       .finally(() => setChecked(true));
   }, []);
 
-  if (!checked) return null;
+  if (!checked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
   if (!authed) return null;
   return <>{children}</>;
 }

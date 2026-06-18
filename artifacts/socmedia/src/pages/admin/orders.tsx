@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -209,6 +209,9 @@ export default function AdminOrders() {
           <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-mono">{selectedOrder.orderCode}</DialogTitle>
+              <DialogDescription>
+                Detail dan kelola status pesanan dari {selectedOrder.buyerName}
+              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-2 text-sm">

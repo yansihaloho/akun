@@ -14,10 +14,11 @@ import {
   nextId,
   type StoredAccount,
 } from "../lib/github-storage";
+import { requireAdmin } from "../lib/requireAdmin";
 
 const router = Router();
 
-router.get("/accounts/stats", async (req, res) => {
+router.get("/accounts/stats", requireAdmin, async (req, res) => {
   try {
     const accounts = await getAccounts();
 
@@ -38,7 +39,7 @@ router.get("/accounts/stats", async (req, res) => {
   }
 });
 
-router.get("/accounts", async (req, res) => {
+router.get("/accounts", requireAdmin, async (req, res) => {
   try {
     const parsed = ListAccountsQueryParams.safeParse(req.query);
     const filters = parsed.success ? parsed.data : {};
@@ -59,7 +60,7 @@ router.get("/accounts", async (req, res) => {
   }
 });
 
-router.post("/accounts/import", async (req, res) => {
+router.post("/accounts/import", requireAdmin, async (req, res) => {
   try {
     const parsed = ImportAccountsBody.safeParse(req.body);
     if (!parsed.success) {
@@ -112,7 +113,7 @@ router.post("/accounts/import", async (req, res) => {
   }
 });
 
-router.post("/accounts", async (req, res) => {
+router.post("/accounts", requireAdmin, async (req, res) => {
   try {
     const parsed = CreateAccountBody.safeParse(req.body);
     if (!parsed.success) {
@@ -151,7 +152,7 @@ router.post("/accounts", async (req, res) => {
   }
 });
 
-router.get("/accounts/:id", async (req, res) => {
+router.get("/accounts/:id", requireAdmin, async (req, res) => {
   try {
     const parsed = GetAccountParams.safeParse({ id: Number(req.params["id"]) });
     if (!parsed.success) {
@@ -174,7 +175,7 @@ router.get("/accounts/:id", async (req, res) => {
   }
 });
 
-router.patch("/accounts/:id", async (req, res) => {
+router.patch("/accounts/:id", requireAdmin, async (req, res) => {
   try {
     const paramsParsed = UpdateAccountParams.safeParse({ id: Number(req.params["id"]) });
     const bodyParsed = UpdateAccountBody.safeParse(req.body);
@@ -222,7 +223,7 @@ router.patch("/accounts/:id", async (req, res) => {
   }
 });
 
-router.delete("/accounts/:id", async (req, res) => {
+router.delete("/accounts/:id", requireAdmin, async (req, res) => {
   try {
     const parsed = DeleteAccountParams.safeParse({ id: Number(req.params["id"]) });
     if (!parsed.success) {

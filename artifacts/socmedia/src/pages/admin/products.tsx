@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -201,6 +201,9 @@ export default function AdminProducts() {
         <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId !== null ? "Edit Produk" : "Tambah Produk"}</DialogTitle>
+            <DialogDescription>
+              {editingId !== null ? "Ubah informasi produk yang ada di toko." : "Isi detail produk baru untuk ditampilkan di toko."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>

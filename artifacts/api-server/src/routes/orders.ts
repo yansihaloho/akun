@@ -7,6 +7,8 @@ import { z } from "zod";
 
 const router = Router();
 
+const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+
 function generateOrderCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
@@ -19,8 +21,8 @@ function generateOrderCode(): string {
 const CreateOrderSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().positive().default(1),
-  buyerName: z.string().min(1),
-  buyerWhatsapp: z.string().min(5),
+  buyerName: z.string().min(1).max(200),
+  buyerWhatsapp: z.string().min(5).max(30),
 });
 
 const UpdateOrderSchema = z.object({
@@ -53,7 +55,7 @@ router.post("/orders", async (req, res) => {
 
     let orderCode = generateOrderCode();
     let attempts = 0;
-    while (attempts < 5) {
+    while (attempts < 10) {
       const existing = await db
         .select({ id: ordersTable.id })
         .from(ordersTable)
@@ -62,8 +64,18 @@ router.post("/orders", async (req, res) => {
       orderCode = generateOrderCode();
       attempts++;
     }
+    if (attempts >= 10) {
+      res.status(500).json({ error: "Gagal membuat kode pesanan unik, coba lagi" });
+      return;
+    }
 
     const totalPrice = product.price * quantity;
+
+    await db
+      .update(productsTable)
+      .set({ stock: Math.max(0, product.stock - quantity) })
+      .where(eq(productsTable.id, productId));
+
     const [order] = await db
       .insert(ordersTable)
       .values({
@@ -116,6 +128,13 @@ router.post("/orders/:code/proof", async (req, res) => {
       res.status(400).json({ error: "Bukti pembayaran diperlukan" });
       return;
     }
+
+    const proofBytes = Buffer.byteLength(proof, "utf8");
+    if (proofBytes > MAX_PROOF_BYTES) {
+      res.status(413).json({ error: `Ukuran bukti terlalu besar (maks 5MB). Kompres gambar terlebih dahulu.` });
+      return;
+    }
+
     const [existing] = await db
       .select()
       .from(ordersTable)
@@ -181,19 +200,26 @@ router.patch("/admin/orders/:id", requireAdmin, async (req, res) => {
     if (parsed.data.credentials !== undefined) updateData.credentials = parsed.data.credentials;
     if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
 
-    if (parsed.data.status === "delivered" && existing.status !== "delivered") {
+    const newStatus = parsed.data.status;
+
+    if (newStatus && newStatus !== existing.status) {
       const [product] = await db
         .select()
         .from(productsTable)
         .where(eq(productsTable.id, existing.productId));
+
       if (product) {
-        await db
-          .update(productsTable)
-          .set({
-            stock: Math.max(0, product.stock - existing.quantity),
-            totalSold: product.totalSold + existing.quantity,
-          })
-          .where(eq(productsTable.id, product.id));
+        if (newStatus === "delivered" && existing.status !== "delivered") {
+          await db
+            .update(productsTable)
+            .set({ totalSold: product.totalSold + existing.quantity })
+            .where(eq(productsTable.id, product.id));
+        } else if (newStatus === "cancelled" && existing.status !== "cancelled") {
+          await db
+            .update(productsTable)
+            .set({ stock: product.stock + existing.quantity })
+            .where(eq(productsTable.id, product.id));
+        }
       }
     }
 
