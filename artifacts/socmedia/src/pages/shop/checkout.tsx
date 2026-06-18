@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { formatRupiah } from "@/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import ShopLayout from "@/components/layout/ShopLayout";
@@ -33,8 +34,6 @@ type QrisSettings = {
   whatsapp?: string;
 };
 
-const formatRupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

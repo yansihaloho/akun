@@ -39,7 +39,9 @@ export const ListAccountsResponseItem = zod.object({
   "email_pemulihan": zod.string().nullish(),
   "status": zod.string(),
   "catatan": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "soldOrderCode": zod.string().nullish(),
+  "productId": zod.number().nullish()
 })
 export const ListAccountsResponse = zod.array(ListAccountsResponseItem)
 
@@ -175,7 +177,9 @@ export const GetAccountResponse = zod.object({
   "email_pemulihan": zod.string().nullish(),
   "status": zod.string(),
   "catatan": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "soldOrderCode": zod.string().nullish(),
+  "productId": zod.number().nullish()
 })
 
 
@@ -217,7 +221,9 @@ export const UpdateAccountResponse = zod.object({
   "email_pemulihan": zod.string().nullish(),
   "status": zod.string(),
   "catatan": zod.string().nullish(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "soldOrderCode": zod.string().nullish(),
+  "productId": zod.number().nullish()
 })
 
 
@@ -227,3 +233,5 @@ export const UpdateAccountResponse = zod.object({
 export const DeleteAccountParams = zod.object({
   "id": zod.coerce.number()
 })
+
+

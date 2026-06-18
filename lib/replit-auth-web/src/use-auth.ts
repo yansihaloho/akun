@@ -8,7 +8,14 @@ export interface AuthUser {
   profileImageUrl: string | null;
 }
 
-export function useAuth() {
+export interface UseAuthReturn {
+  user: AuthUser | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  error: Error | null;
+}
+
+export function useAuth(): UseAuthReturn {
   const { data, isLoading, error } = useGetCurrentAuthUser();
 
   const user: AuthUser | null = data?.user ?? null;
@@ -17,6 +24,6 @@ export function useAuth() {
     user,
     isLoading,
     isAuthenticated: !!user,
-    error,
+    error: error ?? null,
   };
 }

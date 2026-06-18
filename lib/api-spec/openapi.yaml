@@ -330,6 +330,10 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
+        soldOrderCode:
+          type: ["string", "null"]
+        productId:
+          type: ["integer", "null"]
 
     AccountInput:
       type: object

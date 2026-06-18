@@ -32,7 +32,41 @@ function headers() {
   };
 }
 
-let _sha = "";
+// Simple async mutex to serialize all GitHub read-modify-write operations.
+// This prevents race conditions where two concurrent requests both read,
+// modify, and write — causing one to overwrite the other's changes.
+type ResolveFn = () => void;
+let _locked = false;
+const _queue: ResolveFn[] = [];
+
+function acquireLock(): Promise<void> {
+  if (!_locked) {
+    _locked = true;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => _queue.push(resolve));
+}
+
+function releaseLock(): void {
+  const next = _queue.shift();
+  if (next) {
+    next();
+  } else {
+    _locked = false;
+  }
+}
+
+// Always fetch a fresh SHA from GitHub before writing to avoid 409 conflicts.
+async function fetchSha(): Promise<string> {
+  const res = await fetch(
+    `${API_BASE}/repos/${GITHUB_REPO}/contents/${FILE_PATH}`,
+    { headers: headers() }
+  );
+  if (res.status === 404) return "";
+  if (!res.ok) throw new Error(`GitHub SHA fetch error: ${res.status}`);
+  const data = (await res.json()) as { sha: string };
+  return data.sha;
+}
 
 export async function getAccounts(): Promise<StoredAccount[]> {
   if (!GITHUB_TOKEN) throw new Error("GITHUB_PERSONAL_ACCESS_TOKEN not set");
@@ -42,17 +76,13 @@ export async function getAccounts(): Promise<StoredAccount[]> {
     { headers: headers() }
   );
 
-  if (res.status === 404) {
-    _sha = "";
-    return [];
-  }
+  if (res.status === 404) return [];
 
   if (!res.ok) {
     throw new Error(`GitHub API error: ${res.status} ${await res.text()}`);
   }
 
   const data = (await res.json()) as { content: string; sha: string };
-  _sha = data.sha;
   const raw = Buffer.from(data.content, "base64").toString("utf-8");
   return JSON.parse(raw) as StoredAccount[];
 }
@@ -60,34 +90,30 @@ export async function getAccounts(): Promise<StoredAccount[]> {
 export async function saveAccounts(accounts: StoredAccount[], message: string): Promise<void> {
   if (!GITHUB_TOKEN) throw new Error("GITHUB_PERSONAL_ACCESS_TOKEN not set");
 
-  const content = Buffer.from(JSON.stringify(accounts, null, 2)).toString("base64");
+  await acquireLock();
+  try {
+    // Always read the current SHA right before writing to avoid 409 conflicts.
+    const currentSha = await fetchSha();
+    const content = Buffer.from(JSON.stringify(accounts, null, 2)).toString("base64");
 
-  const body: Record<string, unknown> = {
-    message,
-    content,
-  };
+    const body: Record<string, unknown> = { message, content };
+    if (currentSha) body["sha"] = currentSha;
 
-  if (_sha) {
-    body["sha"] = _sha;
-  }
+    const res = await fetch(
+      `${API_BASE}/repos/${GITHUB_REPO}/contents/${FILE_PATH}`,
+      {
+        method: "PUT",
+        headers: headers(),
+        body: JSON.stringify(body),
+      }
+    );
 
-  const res = await fetch(
-    `${API_BASE}/repos/${GITHUB_REPO}/contents/${FILE_PATH}`,
-    {
-      method: "PUT",
-      headers: headers(),
-      body: JSON.stringify(body),
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`GitHub API write error: ${res.status} ${txt}`);
     }
-  );
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`GitHub API write error: ${res.status} ${txt}`);
-  }
-
-  const result = (await res.json()) as { content?: { sha?: string } };
-  if (result.content?.sha) {
-    _sha = result.content.sha;
+  } finally {
+    releaseLock();
   }
 }
 

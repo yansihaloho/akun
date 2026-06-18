@@ -42,7 +42,11 @@ router.get("/accounts/stats", requireAdmin, async (req, res) => {
 router.get("/accounts", requireAdmin, async (req, res) => {
   try {
     const parsed = ListAccountsQueryParams.safeParse(req.query);
-    const filters = parsed.success ? parsed.data : {};
+    if (!parsed.success) {
+      res.status(400).json({ error: "Parameter filter tidak valid", details: parsed.error.issues });
+      return;
+    }
+    const filters = parsed.data;
 
     let accounts = await getAccounts();
 
@@ -91,6 +95,8 @@ router.post("/accounts/import", requireAdmin, async (req, res) => {
           status: acct.status ?? "CP",
           catatan: acct.catatan ?? null,
           createdAt: new Date().toISOString(),
+          soldOrderCode: null,
+          productId: null,
         };
         accounts.push(newAccount);
         imported++;
@@ -140,6 +146,8 @@ router.post("/accounts", requireAdmin, async (req, res) => {
       status: data.status ?? "CP",
       catatan: data.catatan ?? null,
       createdAt: new Date().toISOString(),
+      soldOrderCode: null,
+      productId: null,
     };
 
     accounts.push(newAccount);

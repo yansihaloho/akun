@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatRupiah } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,8 +49,6 @@ const defaultForm: ProductForm = {
   warrantyDays: "1", platform: "facebook", category: "", isActive: true,
 };
 
-const formatRupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 
 export default function AdminProducts() {
   const qc = useQueryClient();

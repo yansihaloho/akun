@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatRupiah } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +32,6 @@ type Order = {
   createdAt: string;
 };
 
-const formatRupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 
 const STATUS_CONFIG = {
   pending: { label: "Menunggu Bayar", color: "bg-orange-100 text-orange-700", icon: Clock },

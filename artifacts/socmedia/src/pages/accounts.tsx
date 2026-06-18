@@ -68,11 +68,6 @@ const STATUS_LABEL: Record<string, string> = {
   terjual: "TERJUAL",
 };
 
-type AccountWithSold = {
-  soldOrderCode?: string | null;
-  [key: string]: unknown;
-};
-
 type AccountForm = {
   platform: "facebook" | "instagram";
   nama: string;
@@ -181,7 +176,7 @@ export default function Accounts() {
       if (!match) return false;
     }
     if (belumTerjualOnly) {
-      const soldCode = (a as unknown as AccountWithSold).soldOrderCode;
+      const soldCode = a.soldOrderCode;
       if (soldCode) return false;
     }
     return true;
@@ -476,7 +471,7 @@ export default function Accounts() {
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[acct.status] ?? "bg-gray-100 text-gray-700"}`}>
                     {STATUS_LABEL[acct.status] ?? acct.status}
                   </span>
-                  {(acct as unknown as AccountWithSold).soldOrderCode ? (
+                  {acct.soldOrderCode ? (
                     <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-600">
                       Terjual
                     </span>
@@ -587,7 +582,7 @@ export default function Accounts() {
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full w-fit ${STATUS_COLORS[acct.status] ?? "bg-gray-100 text-gray-700"}`}>
                           {STATUS_LABEL[acct.status] ?? acct.status}
                         </span>
-                        {(acct as unknown as AccountWithSold).soldOrderCode ? (
+                        {acct.soldOrderCode ? (
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit bg-red-100 text-red-600">
                             Terjual
                           </span>

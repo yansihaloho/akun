@@ -57,6 +57,10 @@ export interface Account {
   /** @nullable */
   catatan?: string | null;
   createdAt: string;
+  /** @nullable */
+  soldOrderCode?: string | null;
+  /** @nullable */
+  productId?: number | null;
 }
 
 export type AccountInputPlatform = typeof AccountInputPlatform[keyof typeof AccountInputPlatform];
@@ -165,3 +169,4 @@ export type HandleBrowserLoginCallbackParams = {
 code?: string;
 state?: string;
 };
+

@@ -1,4 +1,5 @@
 import { useGetAccountStats, useListAccounts } from "@workspace/api-client-react";
+import { formatRupiahCompact } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Facebook, Instagram, Activity, Package, ShoppingBag, CheckCircle2, TrendingUp } from "lucide-react";
@@ -14,8 +15,6 @@ const STATUS_COLORS: Record<string, string> = {
   SPAM: "#eab308",
 };
 
-const formatRupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, notation: "compact" }).format(n);
 
 type ShopStats = {
   totalProducts: number;
@@ -174,7 +173,7 @@ function StatCard({
           <Skeleton className="h-8 w-16" />
         ) : (
           <p className="text-2xl font-bold truncate">
-            {isRevenue ? formatRupiah(value ?? 0) : (value ?? 0)}
+            {isRevenue ? formatRupiahCompact(value ?? 0) : (value ?? 0)}
           </p>
         )}
       </CardContent>

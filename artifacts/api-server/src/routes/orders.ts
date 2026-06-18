@@ -76,27 +76,42 @@ router.post("/orders", async (req, res) => {
 
     const totalPrice = product.price * quantity;
 
-    await db
-      .update(productsTable)
-      .set({ stock: Math.max(0, product.stock - quantity) })
-      .where(eq(productsTable.id, productId));
-
-    const [order] = await db
-      .insert(ordersTable)
-      .values({
-        orderCode,
-        productId,
-        productName: product.name,
-        quantity,
-        totalPrice,
-        buyerName,
-        buyerWhatsapp,
-        status: "pending",
-      })
-      .returning();
+    // Wrap stock decrement + order insert in a transaction to prevent overselling
+    const order = await db.transaction(async (tx) => {
+      // Re-check stock inside transaction to avoid race conditions
+      const [freshProduct] = await tx
+        .select()
+        .from(productsTable)
+        .where(eq(productsTable.id, productId));
+      if (!freshProduct || freshProduct.stock < quantity) {
+        throw new Error("INSUFFICIENT_STOCK");
+      }
+      await tx
+        .update(productsTable)
+        .set({ stock: Math.max(0, freshProduct.stock - quantity) })
+        .where(eq(productsTable.id, productId));
+      const [newOrder] = await tx
+        .insert(ordersTable)
+        .values({
+          orderCode,
+          productId,
+          productName: product.name,
+          quantity,
+          totalPrice,
+          buyerName,
+          buyerWhatsapp,
+          status: "pending",
+        })
+        .returning();
+      return newOrder;
+    });
 
     res.status(201).json(order);
   } catch (err) {
+    if (err instanceof Error && err.message === "INSUFFICIENT_STOCK") {
+      res.status(400).json({ error: "Stok tidak mencukupi" });
+      return;
+    }
     req.log.error({ err }, "Error creating order");
     res.status(500).json({ error: "Gagal membuat pesanan" });
   }
@@ -179,7 +194,7 @@ router.get("/admin/orders", requireAdmin, async (req, res) => {
 
 router.get("/admin/orders/:id", requireAdmin, async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params["id"]), 10);
     if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid" }); return; }
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id));
     if (!order) { res.status(404).json({ error: "Pesanan tidak ditemukan" }); return; }
@@ -192,7 +207,7 @@ router.get("/admin/orders/:id", requireAdmin, async (req, res) => {
 
 router.patch("/admin/orders/:id", requireAdmin, async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params["id"]), 10);
     if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid" }); return; }
     const parsed = UpdateOrderSchema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: "Data tidak valid" }); return; }

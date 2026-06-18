@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { formatRupiah } from "@/lib/utils";
 import { useLocation, useParams } from "wouter";
 import ShopLayout from "@/components/layout/ShopLayout";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,6 @@ type Product = {
   isActive: boolean;
 };
 
-const formatRupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();

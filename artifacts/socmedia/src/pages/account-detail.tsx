@@ -125,7 +125,7 @@ export default function AccountDetail() {
               >
                 {STATUS_LABEL[account.status] ?? account.status}
               </span>
-              {(account as unknown as { soldOrderCode?: string | null }).soldOrderCode ? (
+              {account.soldOrderCode ? (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-600">
                   Terjual
                 </span>

@@ -72,7 +72,7 @@ router.post("/admin/products", requireAdmin, async (req, res) => {
 
 router.patch("/admin/products/:id", requireAdmin, async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params["id"]), 10);
     if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid" }); return; }
     const parsed = ProductUpdateSchema.safeParse(req.body);
     if (!parsed.success) { res.status(400).json({ error: "Data tidak valid" }); return; }
@@ -91,7 +91,7 @@ router.patch("/admin/products/:id", requireAdmin, async (req, res) => {
 
 router.delete("/admin/products/:id", requireAdmin, async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params["id"]), 10);
     if (isNaN(id)) { res.status(400).json({ error: "ID tidak valid" }); return; }
     const [product] = await db
       .delete(productsTable)

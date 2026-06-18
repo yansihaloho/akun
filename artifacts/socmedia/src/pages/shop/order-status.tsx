@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatRupiah } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import ShopLayout from "@/components/layout/ShopLayout";
@@ -26,8 +27,6 @@ type QrisSettings = {
   whatsapp?: string;
 };
 
-const formatRupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 
 const STATUS_CONFIG = {
   pending: {
