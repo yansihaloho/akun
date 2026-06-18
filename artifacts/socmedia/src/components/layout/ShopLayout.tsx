@@ -1,13 +1,21 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Globe, ShoppingBag, Search } from "lucide-react";
+import { Globe, ShoppingBag, Search, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type QrisSettings = {
   image: string | null;
   accountName: string;
   whatsapp?: string;
+};
+
+type StoreProfile = {
+  storeName: string;
+  tagline: string;
+  logo: string | null;
+  primaryColor: string;
+  bannerText: string;
 };
 
 interface ShopLayoutProps {
@@ -26,10 +34,14 @@ export default function ShopLayout({ children, onSearch, showSearch }: ShopLayou
     staleTime: 5 * 60_000,
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (onSearch) onSearch(q);
-  };
+  const { data: profile } = useQuery<StoreProfile>({
+    queryKey: ["store-profile"],
+    queryFn: () => fetch("/api/settings/store-profile").then((r) => r.json()),
+    staleTime: 5 * 60_000,
+  });
+
+  const primaryColor = profile?.primaryColor ?? "#4f46e5";
+  const storeName = profile?.storeName ?? "SocMedia Shop";
 
   const handleSearchChange = (value: string) => {
     setQ(value);
@@ -38,17 +50,27 @@ export default function ShopLayout({ children, onSearch, showSearch }: ShopLayou
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* ── Top navbar ─────────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/shop" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Globe className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-gray-900 text-sm hidden sm:inline">SocMedia Shop</span>
+            {profile?.logo ? (
+              <img
+                src={profile.logo}
+                alt={storeName}
+                className="w-8 h-8 rounded-lg object-contain"
+                style={{ background: `${primaryColor}22` }}
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
+                <Globe className="w-4 h-4 text-white" />
+              </div>
+            )}
+            <span className="font-bold text-gray-900 text-sm hidden sm:inline">{storeName}</span>
           </Link>
 
           {showSearch && (
-            <form onSubmit={handleSearch} className="flex-1 max-w-sm mx-auto">
+            <form className="flex-1 max-w-sm mx-auto" onSubmit={(e) => e.preventDefault()}>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input
@@ -56,6 +78,7 @@ export default function ShopLayout({ children, onSearch, showSearch }: ShopLayou
                   onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Cari produk..."
                   className="w-full pl-8 pr-3 h-8 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  style={{ "--tw-ring-color": primaryColor } as React.CSSProperties}
                 />
               </div>
             </form>
@@ -88,12 +111,49 @@ export default function ShopLayout({ children, onSearch, showSearch }: ShopLayou
         </div>
       </header>
 
+      {/* ── Store banner ────────────────────────────────────────────────────── */}
+      {profile && (
+        <div
+          className="w-full"
+          style={{ background: `linear-gradient(135deg, ${primaryColor}f0, ${primaryColor}b0)` }}
+        >
+          <div className="max-w-6xl mx-auto px-4 py-5 flex items-center gap-4">
+            {profile.logo ? (
+              <img
+                src={profile.logo}
+                alt={storeName}
+                className="w-14 h-14 rounded-2xl object-contain bg-white/20 p-1.5 flex-shrink-0 shadow-sm"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl bg-white/25 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Store className="w-7 h-7 text-white" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="font-bold text-white text-lg leading-tight">{storeName}</h1>
+              {profile.tagline && (
+                <p className="text-white/80 text-sm mt-0.5 line-clamp-2">{profile.tagline}</p>
+              )}
+            </div>
+          </div>
+
+          {profile.bannerText && (
+            <div className="bg-black/20">
+              <div className="max-w-6xl mx-auto px-4 py-2">
+                <p className="text-white/90 text-xs text-center">{profile.bannerText}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Page content ────────────────────────────────────────────────────── */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
         {children}
       </main>
 
       <footer className="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} SocMedia Shop · Semua transaksi terjamin aman
+        © {new Date().getFullYear()} {storeName} · Semua transaksi terjamin aman
         {qris?.whatsapp && (
           <span className="ml-2">
             ·{" "}
@@ -101,7 +161,8 @@ export default function ShopLayout({ children, onSearch, showSearch }: ShopLayou
               href={`https://wa.me/${qris.whatsapp.replace(/\D/g, "")}`}
               target="_blank"
               rel="noreferrer"
-              className="text-green-600 hover:underline"
+              className="hover:underline"
+              style={{ color: primaryColor }}
             >
               Hubungi Admin
             </a>
