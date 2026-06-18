@@ -1,0 +1,1 @@
+export type AuthorizationSessionHeaderParameter = string;
