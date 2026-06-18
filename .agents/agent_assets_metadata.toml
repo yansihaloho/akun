@@ -1,0 +1,26 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "-IajxHV4HhNzuq4a4kWjw"
+uri = "file://attached_assets/products/fb-tua-bekas-iklan.png"
+type = "image"
+title = "fb tua bekas iklan banner"
+
+[[generated]]
+id = "_wMTmSmw2Z9CzNWnow2td"
+uri = "file://attached_assets/products/fb-tua-ads-1bm.png"
+type = "image"
+title = "fb tua ads 1bm banner"
+
+[[generated]]
+id = "KeS8BD_9T3J39J-YnAZ20"
+uri = "file://attached_assets/products/fb-fresh-ads-spam.png"
+type = "image"
+title = "fb fresh ads spam banner"
+
+[[generated]]
+id = "6iHMeo43XBECBbPGOx8zu"
+uri = "file://attached_assets/products/fb-old-cookie.png"
+type = "image"
+title = "fb old cookie login banner"
