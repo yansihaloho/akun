@@ -1,0 +1,284 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Clock, CheckCircle2, Package, XCircle, Loader2, Eye, ExternalLink,
+  ShoppingBag, ChevronDown,
+} from "lucide-react";
+
+type Order = {
+  id: number;
+  orderCode: string;
+  productName: string;
+  quantity: number;
+  totalPrice: number;
+  buyerName: string;
+  buyerWhatsapp: string;
+  status: "pending" | "paid" | "delivered" | "cancelled";
+  paymentProof: string | null;
+  credentials: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+const formatRupiah = (n: number) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+
+const STATUS_CONFIG = {
+  pending: { label: "Menunggu Bayar", color: "bg-orange-100 text-orange-700", icon: Clock },
+  paid: { label: "Bukti Dikirim", color: "bg-blue-100 text-blue-700", icon: Loader2 },
+  delivered: { label: "Terkirim", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
+  cancelled: { label: "Dibatalkan", color: "bg-red-100 text-red-700", icon: XCircle },
+};
+
+const STATUS_OPTIONS = ["pending", "paid", "delivered", "cancelled"] as const;
+
+export default function AdminOrders() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [newStatus, setNewStatus] = useState<string>("");
+  const [credentials, setCredentials] = useState("");
+  const [notes, setNotes] = useState("");
+  const [proofOpen, setProofOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  const { data: orders = [], isLoading } = useQuery<Order[]>({
+    queryKey: ["admin-orders"],
+    queryFn: () => fetch("/api/admin/orders", { credentials: "include" }).then((r) => r.json()),
+    refetchInterval: 30_000,
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-orders"] });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: object }) =>
+      fetch(`/api/admin/orders/${id}`, {
+        method: "PATCH", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; }),
+    onSuccess: (updated) => {
+      toast({ title: "Pesanan diperbarui" });
+      setSelectedOrder(updated);
+      invalidate();
+    },
+    onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
+  });
+
+  const openOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setNewStatus(order.status);
+    setCredentials(order.credentials ?? "");
+    setNotes(order.notes ?? "");
+  };
+
+  const handleSave = () => {
+    if (!selectedOrder) return;
+    updateMutation.mutate({
+      id: selectedOrder.id,
+      data: {
+        status: newStatus,
+        credentials: credentials || null,
+        notes: notes || null,
+      },
+    });
+  };
+
+  const filtered = filterStatus === "all" ? orders : orders.filter((o) => o.status === filterStatus);
+
+  const pendingCount = orders.filter((o) => o.status === "paid").length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-bold flex items-center gap-2">
+            Pesanan
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-red-500 text-white rounded-full">
+                {pendingCount}
+              </span>
+            )}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">Kelola semua pesanan dari pembeli</p>
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-36 h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua</SelectItem>
+            {STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>Tidak ada pesanan</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((order) => {
+            const cfg = STATUS_CONFIG[order.status];
+            const Icon = cfg.icon;
+            return (
+              <div
+                key={order.id}
+                className="bg-card rounded-xl border border-border p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                onClick={() => openOrder(order)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono font-bold text-sm text-foreground">{order.orderCode}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1 ${cfg.color}`}>
+                        <Icon className="w-3 h-3" />
+                        {cfg.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-1">{order.productName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {order.buyerName} · {order.buyerWhatsapp}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-semibold text-sm">{formatRupiah(order.totalPrice)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(order.createdAt).toLocaleDateString("id-ID")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={!!selectedOrder} onOpenChange={(o) => !o && setSelectedOrder(null)}>
+        {selectedOrder && (
+          <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-mono">{selectedOrder.orderCode}</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2 text-sm">
+              <div className="bg-muted/40 rounded-lg p-3 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Produk</span>
+                  <span className="font-medium text-right max-w-[200px]">{selectedOrder.productName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Jumlah</span>
+                  <span className="font-medium">{selectedOrder.quantity}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="font-bold">{formatRupiah(selectedOrder.totalPrice)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Pembeli</span>
+                  <span className="font-medium">{selectedOrder.buyerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">WhatsApp</span>
+                  <a
+                    href={`https://wa.me/${selectedOrder.buyerWhatsapp.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-green-600 flex items-center gap-1"
+                  >
+                    {selectedOrder.buyerWhatsapp}
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tanggal</span>
+                  <span>{new Date(selectedOrder.createdAt).toLocaleString("id-ID")}</span>
+                </div>
+              </div>
+
+              {selectedOrder.paymentProof && (
+                <div>
+                  <button
+                    onClick={() => setProofOpen(!proofOpen)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Lihat Bukti Bayar
+                    <ChevronDown className={`w-3 h-3 transition-transform ${proofOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {proofOpen && (
+                    <img
+                      src={selectedOrder.paymentProof}
+                      alt="Bukti pembayaran"
+                      className="mt-2 w-full rounded-lg border border-border max-h-64 object-contain"
+                    />
+                  )}
+                </div>
+              )}
+
+              <div>
+                <Label className="text-xs">Status Pesanan</Label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs">Kredensial Akun (dikirim ke pembeli saat "Terkirim")</Label>
+                <textarea
+                  value={credentials}
+                  onChange={(e) => setCredentials(e.target.value)}
+                  rows={5}
+                  className="w-full mt-1 px-3 py-2 text-xs font-mono border border-input rounded-md bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Email: xxx@gmail.com&#10;Sandi: xxxxx&#10;2FA: xxxxx"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs">Catatan Admin (opsional)</Label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={2}
+                  className="w-full mt-1 px-3 py-2 text-sm border border-input rounded-md bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                  placeholder="Catatan internal..."
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedOrder(null)}>Tutup</Button>
+              <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+    </div>
+  );
+}

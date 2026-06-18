@@ -7,6 +7,13 @@ import Dashboard from "@/pages/dashboard";
 import Accounts from "@/pages/accounts";
 import AccountDetail from "@/pages/account-detail";
 import Login from "@/pages/login";
+import ShopIndex from "@/pages/shop/index";
+import ProductDetail from "@/pages/shop/product";
+import Checkout from "@/pages/shop/checkout";
+import OrderStatus from "@/pages/shop/order-status";
+import AdminProducts from "@/pages/admin/products";
+import AdminOrders from "@/pages/admin/orders";
+import AdminSettings from "@/pages/admin/settings";
 import Layout from "@/components/layout/Layout";
 import { useEffect, useState } from "react";
 
@@ -44,37 +51,47 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthGuard>
+      <Layout>{children}</Layout>
+    </AuthGuard>
+  );
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+
+      {/* Public shop routes — no auth required */}
+      <Route path="/shop" component={ShopIndex} />
+      <Route path="/shop/produk/:id" component={ProductDetail} />
+      <Route path="/shop/checkout/:id" component={Checkout} />
+      <Route path="/shop/cek-pesanan" component={OrderStatus} />
+
+      {/* Admin routes — auth required */}
       <Route path="/">
-        <AuthGuard>
-          <Layout>
-            <Dashboard />
-          </Layout>
-        </AuthGuard>
+        <AdminRoute><Dashboard /></AdminRoute>
       </Route>
       <Route path="/accounts">
-        <AuthGuard>
-          <Layout>
-            <Accounts />
-          </Layout>
-        </AuthGuard>
+        <AdminRoute><Accounts /></AdminRoute>
       </Route>
       <Route path="/accounts/:id">
-        <AuthGuard>
-          <Layout>
-            <AccountDetail />
-          </Layout>
-        </AuthGuard>
+        <AdminRoute><AccountDetail /></AdminRoute>
       </Route>
+      <Route path="/admin/products">
+        <AdminRoute><AdminProducts /></AdminRoute>
+      </Route>
+      <Route path="/admin/orders">
+        <AdminRoute><AdminOrders /></AdminRoute>
+      </Route>
+      <Route path="/admin/settings">
+        <AdminRoute><AdminSettings /></AdminRoute>
+      </Route>
+
       <Route>
-        <AuthGuard>
-          <Layout>
-            <NotFound />
-          </Layout>
-        </AuthGuard>
+        <AdminRoute><NotFound /></AdminRoute>
       </Route>
     </Switch>
   );

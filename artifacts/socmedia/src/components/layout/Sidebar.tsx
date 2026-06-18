@@ -1,10 +1,13 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, LogOut, Globe, X } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, Globe, X, Package, ShoppingBag, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/accounts", label: "Akun", icon: Users },
+  { href: "/admin/products", label: "Produk", icon: Package },
+  { href: "/admin/orders", label: "Pesanan", icon: ShoppingBag },
+  { href: "/admin/settings", label: "Pengaturan", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -27,7 +30,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-sidebar-foreground leading-tight truncate">SocMedia Ops</p>
-          <p className="text-xs text-sidebar-foreground/50 leading-tight">Account Manager</p>
+          <p className="text-xs text-sidebar-foreground/50 leading-tight">Admin Panel</p>
         </div>
         {onClose && (
           <button
@@ -63,7 +66,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-sidebar-border">
+      <div className="px-3 py-3 border-t border-sidebar-border">
+        <Link
+          href="/shop"
+          className="flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors mb-1"
+          onClick={onClose}
+        >
+          <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+          Lihat Toko (User)
+        </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors w-full text-left cursor-pointer"
