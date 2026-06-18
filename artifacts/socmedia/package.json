@@ -78,6 +78,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "radix-ui": "^1.4.3"
+    "radix-ui": "^1.4.3",
+    "xlsx": "^0.18.5"
   }
 }

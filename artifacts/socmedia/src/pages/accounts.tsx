@@ -51,6 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload, Download, Pencil, Trash2, Search, Filter, Eye, EyeOff } from "lucide-react";
 import { CopyButton } from "@/components/copy-button";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 const STATUS_OPTIONS = ["CP", "ADS", "BAN", "DISABLED", "AKTIF", "SPAM", "terjual"];
 const PLATFORM_OPTIONS = [
@@ -311,40 +312,85 @@ export default function Accounts() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Map a single row (from CSV or Excel) to account fields.
+  // Supports both native export format and Jual-AkunCom Excel format.
+  function mapRowToAccount(r: Record<string, string>) {
+    const isJualAkun = "Id Fb" in r || "Pass" in r || "Kode login" in r;
+    if (isJualAkun) {
+      return {
+        platform: "facebook" as const,
+        nama: r["Nama"] || r["nama"] || "",
+        email: r["Email"] || r["email"] || "",
+        sandi: r["Pass"] || r["sandi"] || "",
+        uid: r["Id Fb"] || r["uid"] || undefined,
+        kode_2fa: r["Kode login"] || r["kode_2fa"] || undefined,
+        sandi_email: r["Pass Email"] || r["sandi_email"] || undefined,
+        email_pemulihan: r["Email Recovery"] || r["email_pemulihan"] || undefined,
+        tgl_lahir: undefined as string | undefined,
+        jenis_kelamin: undefined as string | undefined,
+        sandi_fb: undefined as string | undefined,
+        status: "CP",
+        catatan: undefined as string | undefined,
+      };
+    }
+    return {
+      platform: (r["platform"] || "facebook") as "facebook" | "instagram",
+      nama: r["nama"] || "",
+      email: r["email"] || "",
+      sandi: r["sandi"] || "",
+      tgl_lahir: r["tgl_lahir"] || undefined,
+      jenis_kelamin: r["jenis_kelamin"] || undefined,
+      sandi_fb: r["sandi_fb"] || undefined,
+      kode_2fa: r["kode_2fa"] || undefined,
+      uid: r["uid"] || undefined,
+      sandi_email: r["sandi_email"] || undefined,
+      email_pemulihan: r["email_pemulihan"] || undefined,
+      status: r["status"] || "CP",
+      catatan: r["catatan"] || undefined,
+    };
+  }
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (result) => {
-        const rows = result.data as Record<string, string>[];
-        const accts = rows.map((r) => ({
-          platform: (r["platform"] || "facebook") as "facebook" | "instagram",
-          nama: r["nama"] || "",
-          email: r["email"] || "",
-          sandi: r["sandi"] || "",
-          tgl_lahir: r["tgl_lahir"] || undefined,
-          jenis_kelamin: r["jenis_kelamin"] || undefined,
-          sandi_fb: r["sandi_fb"] || undefined,
-          kode_2fa: r["kode_2fa"] || undefined,
-          uid: r["uid"] || undefined,
-          sandi_email: r["sandi_email"] || undefined,
-          email_pemulihan: r["email_pemulihan"] || undefined,
-          status: r["status"] || "CP",
-          catatan: r["catatan"] || undefined,
-        }));
+    e.target.value = "";
 
+    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
         try {
+          const data = ev.target?.result;
+          const wb = XLSX.read(data, { type: "array" });
+          const ws = wb.Sheets[wb.SheetNames[0]!]!;
+          const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws);
+          const accts = rows.map(mapRowToAccount);
           const res = await importMutation.mutateAsync({ data: { accounts: accts } });
           toast({ title: `Import selesai: ${res.imported} berhasil, ${res.failed} gagal` });
           invalidate();
         } catch {
-          toast({ title: "Import gagal", variant: "destructive" });
+          toast({ title: "Import Excel gagal", variant: "destructive" });
         }
-      },
-    });
-    e.target.value = "";
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (result) => {
+          const rows = result.data as Record<string, string>[];
+          const accts = rows.map(mapRowToAccount);
+          try {
+            const res = await importMutation.mutateAsync({ data: { accounts: accts } });
+            toast({ title: `Import selesai: ${res.imported} berhasil, ${res.failed} gagal` });
+            invalidate();
+          } catch {
+            toast({ title: "Import gagal", variant: "destructive" });
+          }
+        },
+      });
+    }
   };
 
   const f = (key: keyof AccountForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -360,7 +406,7 @@ export default function Accounts() {
           <p className="text-muted-foreground text-sm mt-0.5">Kelola akun Facebook &amp; Instagram</p>
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
-          <input type="file" accept=".csv" ref={fileInputRef} onChange={handleImportCSV} className="hidden" />
+          <input type="file" accept=".csv,.xlsx,.xls" ref={fileInputRef} onChange={handleImportFile} className="hidden" />
           <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending} className="h-8 px-2 text-xs">
             <Upload className="w-3.5 h-3.5 sm:mr-1.5" />
             <span className="hidden sm:inline">Import</span>
