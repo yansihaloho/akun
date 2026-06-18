@@ -4,6 +4,11 @@ import { db } from "@workspace/db";
 import { ordersTable, productsTable } from "@workspace/db";
 import { requireAdmin } from "../lib/requireAdmin";
 import { z } from "zod";
+import {
+  getAccounts,
+  saveAccounts,
+  formatAccountCredentials,
+} from "../lib/github-storage";
 
 const router = Router();
 
@@ -214,6 +219,48 @@ router.patch("/admin/orders/:id", requireAdmin, async (req, res) => {
             .update(productsTable)
             .set({ totalSold: product.totalSold + existing.quantity })
             .where(eq(productsTable.id, product.id));
+
+          if (!parsed.data.credentials) {
+            try {
+              const accounts = await getAccounts();
+              const available = accounts.filter(
+                (a) =>
+                  a.platform === product.platform &&
+                  a.soldOrderCode == null &&
+                  a.status !== "terjual"
+              );
+
+              if (available.length < existing.quantity) {
+                res.status(400).json({
+                  error: `Stok akun tidak cukup. Tersedia ${available.length} akun, dibutuhkan ${existing.quantity}.`,
+                });
+                return;
+              }
+
+              const picked = available.slice(0, existing.quantity);
+              const credParts: string[] = picked.map((a, i) => {
+                const prefix = existing.quantity > 1 ? `=== Akun ${i + 1} ===\n` : "";
+                return prefix + formatAccountCredentials(a);
+              });
+              updateData.credentials = credParts.join("\n\n");
+
+              for (const acct of picked) {
+                const idx = accounts.findIndex((a) => a.id === acct.id);
+                if (idx !== -1) {
+                  accounts[idx] = {
+                    ...accounts[idx]!,
+                    status: "terjual",
+                    soldOrderCode: existing.orderCode,
+                  };
+                }
+              }
+              await saveAccounts(accounts, `Sold ${existing.quantity} akun → pesanan ${existing.orderCode}`);
+            } catch (ghErr) {
+              req.log.error({ err: ghErr }, "Auto-assign accounts failed");
+              res.status(500).json({ error: "Gagal mengambil akun dari pool. Pastikan GitHub token benar dan stok akun tersedia." });
+              return;
+            }
+          }
         } else if (newStatus === "cancelled" && existing.status !== "cancelled") {
           await db
             .update(productsTable)

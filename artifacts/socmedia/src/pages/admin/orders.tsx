@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Clock, CheckCircle2, Package, XCircle, Loader2, Eye, ExternalLink,
-  ShoppingBag, ChevronDown, Search,
+  ShoppingBag, ChevronDown, Search, Send,
 } from "lucide-react";
 
 type Order = {
@@ -74,10 +74,30 @@ export default function AdminOrders() {
       }).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; }),
     onSuccess: (updated) => {
       toast({ title: "Pesanan diperbarui" });
-      setSelectedOrder(updated);
+      if (selectedOrder) setSelectedOrder(updated);
+      setCredentials(updated.credentials ?? "");
       invalidate();
     },
     onError: (e: Error) => toast({ title: e.message, variant: "destructive" }),
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: (id: number) =>
+      fetch(`/api/admin/orders/${id}`, {
+        method: "PATCH", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "delivered" }),
+      }).then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error); return j; }),
+    onSuccess: (updated) => {
+      toast({ title: "✅ Akun berhasil dikirim ke pembeli!", description: `Pesanan ${updated.orderCode} → Terkirim` });
+      invalidate();
+      if (selectedOrder?.id === updated.id) {
+        setSelectedOrder(updated);
+        setNewStatus(updated.status);
+        setCredentials(updated.credentials ?? "");
+      }
+    },
+    onError: (e: Error) => toast({ title: "Gagal konfirmasi", description: e.message, variant: "destructive" }),
   });
 
   const openOrder = (order: Order) => {
@@ -168,34 +188,52 @@ export default function AdminOrders() {
           {filtered.map((order) => {
             const cfg = STATUS_CONFIG[order.status];
             const Icon = cfg.icon;
+            const isConfirming = confirmMutation.isPending && confirmMutation.variables === order.id;
             return (
               <div
                 key={order.id}
-                className="bg-card rounded-xl border border-border p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => openOrder(order)}
+                className="bg-card rounded-xl border border-border p-4 hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
+                  <div
+                    className="min-w-0 flex-1 cursor-pointer"
+                    onClick={() => openOrder(order)}
+                  >
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-mono font-bold text-sm text-foreground">{order.orderCode}</span>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1 ${cfg.color}`}>
-                        <Icon className="w-3 h-3" />
+                        <Icon className={`w-3 h-3 ${order.status === "paid" ? "animate-spin" : ""}`} />
                         {cfg.label}
                       </span>
                       {order.paymentProof && order.status === "paid" && (
                         <span className="text-xs text-blue-600 font-medium">• Ada bukti bayar</span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-1">{order.productName}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-1">{order.productName} × {order.quantity}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {order.buyerName} · {order.buyerWhatsapp}
                     </p>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <p className="font-semibold text-sm">{formatRupiah(order.totalPrice)}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(order.createdAt).toLocaleDateString("id-ID")}
-                    </p>
+                    {order.status === "paid" && (
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white px-3 gap-1.5"
+                        disabled={isConfirming}
+                        onClick={(e) => { e.stopPropagation(); confirmMutation.mutate(order.id); }}
+                      >
+                        {isConfirming
+                          ? <><Loader2 className="w-3 h-3 animate-spin" /> Memproses...</>
+                          : <><Send className="w-3 h-3" /> Konfirmasi & Kirim</>
+                        }
+                      </Button>
+                    )}
+                    {order.status !== "paid" && (
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(order.createdAt).toLocaleDateString("id-ID")}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -271,6 +309,26 @@ export default function AdminOrders() {
                 </div>
               )}
 
+              {selectedOrder.status === "paid" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-blue-800 mb-2">🚀 Konfirmasi Otomatis</p>
+                  <p className="text-xs text-blue-700 mb-3">
+                    Klik tombol di bawah untuk otomatis mengambil {selectedOrder.quantity} akun dari pool, mengirimkannya ke pembeli, dan menandai akun tersebut sebagai terjual.
+                  </p>
+                  <Button
+                    size="sm"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+                    disabled={confirmMutation.isPending}
+                    onClick={() => { confirmMutation.mutate(selectedOrder.id); }}
+                  >
+                    {confirmMutation.isPending
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Memproses...</>
+                      : <><Send className="w-3.5 h-3.5" /> Konfirmasi & Kirim Akun Otomatis</>
+                    }
+                  </Button>
+                </div>
+              )}
+
               <div>
                 <Label className="text-xs">Status Pesanan</Label>
                 <Select value={newStatus} onValueChange={setNewStatus}>
@@ -290,7 +348,7 @@ export default function AdminOrders() {
                   onChange={(e) => setCredentials(e.target.value)}
                   rows={5}
                   className="w-full mt-1 px-3 py-2 text-xs font-mono border border-input rounded-md bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-                  placeholder={"Email: xxx@gmail.com\nSandi: xxxxx\n2FA: xxxxx"}
+                  placeholder={"Terisi otomatis saat Konfirmasi, atau isi manual di sini"}
                 />
               </div>
 
@@ -304,18 +362,12 @@ export default function AdminOrders() {
                   placeholder="Catatan internal..."
                 />
               </div>
-
-              {newStatus === "delivered" && !credentials && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-                  ⚠️ Pastikan isi kredensial akun sebelum mengubah status ke "Terkirim" agar pembeli bisa melihat akunnya.
-                </div>
-              )}
             </div>
 
             <DialogFooter className="gap-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedOrder(null)}>Tutup</Button>
               <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menyimpan...</> : "Simpan Perubahan"}
+                {updateMutation.isPending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menyimpan...</> : "Simpan Manual"}
               </Button>
             </DialogFooter>
           </DialogContent>

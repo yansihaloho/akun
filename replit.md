@@ -1,70 +1,63 @@
 # SocMedia Ops
 
-Platform manajemen akun media sosial (Facebook/Instagram) dengan toko publik untuk jual-beli akun, pembayaran QRIS, dan panel admin lengkap.
+Social media account management system — manage Facebook/Instagram accounts, sell them via a shop with QRIS payment, and track orders.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080, path `/api`)
+- `pnpm --filter @workspace/socmedia run dev` — run the frontend (port 25882, path `/`)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
-- Required env: `SESSION_SECRET` — session secret (min 32 chars)
-- Required env: `GITHUB_PERSONAL_ACCESS_TOKEN` — token untuk GitHub account storage
+- Required env: `SESSION_SECRET` — session signing secret (already set)
+- Required env: `GITHUB_PERSONAL_ACCESS_TOKEN` — for reading/writing accounts in GitHub repo
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- API: Express 5 + express-session + connect-pg-simple
 - DB: PostgreSQL + Drizzle ORM (products, orders, settings, sessions)
-- Account storage: GitHub Contents API (repo: yansihaloho/akun, file: data/accounts.json)
+- Account storage: GitHub API (`yansihaloho/akun` repo, `data/accounts.json`)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
+- Frontend: React + Vite + Tailwind + shadcn/ui + wouter
 - Build: esbuild (CJS bundle)
-- Frontend: React + Vite + TailwindCSS + shadcn/ui
 
 ## Where things live
 
-- `artifacts/api-server/src/routes/` — semua API route (auth, accounts, products, orders, settings, admin-stats)
-- `artifacts/api-server/src/lib/` — auth, requireAdmin middleware, github-storage, logger
-- `artifacts/socmedia/src/pages/` — frontend pages (admin + shop)
-- `artifacts/socmedia/src/pages/admin/` — admin panel pages
-- `artifacts/socmedia/src/pages/shop/` — public shop pages
-- `lib/db/src/schema/` — Drizzle ORM schema (products, orders, settings, sessions)
-- `lib/api-spec/` — OpenAPI spec (sumber kebenaran kontrak API)
-- `artifacts/socmedia/public/products/` — gambar produk yang di-serve sebagai static files
+- `artifacts/api-server/` — Express API server
+- `artifacts/socmedia/` — React/Vite frontend (admin dashboard + public shop)
+- `lib/db/src/schema/` — DB tables: products, orders, settings, auth/sessions
+- `lib/api-spec/openapi.yaml` — OpenAPI source of truth
+- `lib/api-client-react/` — Generated React Query hooks
+- `lib/api-zod/` — Generated Zod validators
+- `lib/replit-auth-web/` — `useAuth()` hook
 
 ## Architecture decisions
 
-- Account data (sensitif: email/password/2FA) disimpan di GitHub repo sebagai JSON — mudah backup & audit trail via git history
-- Products, Orders, Settings disimpan di PostgreSQL — butuh query/filter yang kompleks
-- Payment proof (bukti bayar QRIS) disimpan sebagai base64 di DB, bukan file upload server — simpler infrastructure
-- Semua `/api/accounts*` route dilindungi `requireAdmin` — data akun sangat sensitif
-- Stok produk dikurangi saat order DIBUAT (bukan saat delivered) — mencegah overselling
-- Stok dikembalikan saat order di-CANCEL — konsisten dengan inventory management
+- Accounts stored in GitHub (`yansihaloho/akun` repo at `data/accounts.json`) — no DB table for accounts
+- Products, orders, and settings stored in PostgreSQL via Drizzle ORM
+- Session-based auth with hardcoded admin credentials (username: `admin`)
+- Public shop routes (`/shop/*`) require no auth; admin routes require session
+- QRIS image stored as base64 in the `settings` table
 
 ## Product
 
-- **Admin Panel** (`/`) — dashboard stats, kelola akun FB/IG (CRUD via GitHub), kelola produk, pesanan, pengaturan QRIS
-- **Toko Publik** (`/shop`) — browse produk, detail produk, checkout dengan QRIS, upload bukti bayar
-- **Cek Pesanan** (`/shop/cek-pesanan`) — pembeli cek status pesanan dengan kode 8 karakter
-- **Auth** — session-based, admin/an3dis13, protected via `requireAdmin` middleware
+- **Admin dashboard**: manage Facebook/Instagram accounts, products, orders, settings
+- **Public shop**: browse products, checkout, upload payment proof, check order status
+- **Account import**: bulk CSV import of social media account credentials
+- **Shop features**: QRIS payment display, WhatsApp contact, order tracking by code
 
 ## User preferences
 
-- Bahasa Indonesia untuk semua teks UI
-- Harga ditampilkan format Rupiah (Rp)
-- Mobile responsive design
+_Populate as you build — explicit user instructions worth remembering across sessions._
 
 ## Gotchas
 
-- GitHub API rate limit: 5000 req/jam per token — cukup untuk penggunaan normal
-- Module-level `_sha` di github-storage.ts — concurrent writes bisa conflict; single-admin app jadi aman
-- Payment proof max 5MB (divalidasi di server)
-- Gambar produk disimpan di `artifacts/socmedia/public/products/` — serve sebagai static Vite files
-- imageUrl produk pakai path relatif `/products/filename.png` (bukan URL absolut)
-- Session cookie `secure: true` hanya di production (`NODE_ENV=production`)
+- `GITHUB_PERSONAL_ACCESS_TOKEN` must have write access to `yansihaloho/akun` repo
+- Account operations hit GitHub API on every request (no local cache beyond the SHA for writes)
+- Session store uses `sessions` table in PostgreSQL; run `db push` after first setup
+- Admin credentials: username=`admin`, password=`an3dis13` (hardcoded in `artifacts/api-server/src/lib/auth.ts`)
 
 ## Pointers
 

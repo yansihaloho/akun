@@ -71,7 +71,6 @@ export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus>
 
 
 
-
 export const getHealthCheckQueryKey = () => {
     return [
     `/api/healthz`
@@ -89,7 +88,6 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({ signal }) => healthCheck({ signal, ...requestOptions });
-
 
 
 
@@ -116,11 +114,6 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
 
 
 export const getListAccountsUrl = (params?: ListAccountsParams,) => {
@@ -155,7 +148,6 @@ export const listAccounts = async (params?: ListAccountsParams, options?: Reques
 
 
 
-
 export const getListAccountsQueryKey = (params?: ListAccountsParams,) => {
     return [
     `/api/accounts`, ...(params ? [params] : [])
@@ -173,7 +165,6 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof listAccounts>>> = ({ signal }) => listAccounts(params, { signal, ...requestOptions });
-
 
 
 
@@ -200,11 +191,6 @@ export function useListAccounts<TData = Awaited<ReturnType<typeof listAccounts>>
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
 
 
 export const getCreateAccountUrl = () => {
@@ -256,8 +242,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-
-
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateAccountMutationResult = NonNullable<Awaited<ReturnType<typeof createAccount>>>
@@ -303,7 +287,6 @@ export const getCurrentAuthUser = async ( options?: RequestInit): Promise<AuthUs
 
 
 
-
 export const getGetCurrentAuthUserQueryKey = () => {
     return [
     `/api/auth/user`
@@ -321,7 +304,6 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getCurrentAuthUser>>> = ({ signal }) => getCurrentAuthUser({ signal, ...requestOptions });
-
 
 
 
@@ -348,256 +330,6 @@ export function useGetCurrentAuthUser<TData = Awaited<ReturnType<typeof getCurre
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
-
-export const getBeginBrowserLoginUrl = (params?: BeginBrowserLoginParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/login?${stringifiedParams}` : `/api/login`
-}
-
-/**
- * @summary Start the browser OIDC login flow
- */
-export const beginBrowserLogin = async (params?: BeginBrowserLoginParams, options?: RequestInit): Promise<unknown> => {
-
-  return customFetch<unknown>(getBeginBrowserLoginUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getBeginBrowserLoginQueryKey = (params?: BeginBrowserLoginParams,) => {
-    return [
-    `/api/login`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getBeginBrowserLoginQueryOptions = <TData = Awaited<ReturnType<typeof beginBrowserLogin>>, TError = ErrorType<void>>(params?: BeginBrowserLoginParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof beginBrowserLogin>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getBeginBrowserLoginQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof beginBrowserLogin>>> = ({ signal }) => beginBrowserLogin(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof beginBrowserLogin>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type BeginBrowserLoginQueryResult = NonNullable<Awaited<ReturnType<typeof beginBrowserLogin>>>
-export type BeginBrowserLoginQueryError = ErrorType<void>
-
-
-/**
- * @summary Start the browser OIDC login flow
- */
-
-export function useBeginBrowserLogin<TData = Awaited<ReturnType<typeof beginBrowserLogin>>, TError = ErrorType<void>>(
- params?: BeginBrowserLoginParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof beginBrowserLogin>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getBeginBrowserLoginQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-
-export const getHandleBrowserLoginCallbackUrl = (params?: HandleBrowserLoginCallbackParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/callback?${stringifiedParams}` : `/api/callback`
-}
-
-/**
- * @summary Complete the browser OIDC login flow
- */
-export const handleBrowserLoginCallback = async (params?: HandleBrowserLoginCallbackParams, options?: RequestInit): Promise<unknown> => {
-
-  return customFetch<unknown>(getHandleBrowserLoginCallbackUrl(params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getHandleBrowserLoginCallbackQueryKey = (params?: HandleBrowserLoginCallbackParams,) => {
-    return [
-    `/api/callback`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getHandleBrowserLoginCallbackQueryOptions = <TData = Awaited<ReturnType<typeof handleBrowserLoginCallback>>, TError = ErrorType<void>>(params?: HandleBrowserLoginCallbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof handleBrowserLoginCallback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getHandleBrowserLoginCallbackQueryKey(params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof handleBrowserLoginCallback>>> = ({ signal }) => handleBrowserLoginCallback(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof handleBrowserLoginCallback>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type HandleBrowserLoginCallbackQueryResult = NonNullable<Awaited<ReturnType<typeof handleBrowserLoginCallback>>>
-export type HandleBrowserLoginCallbackQueryError = ErrorType<void>
-
-
-/**
- * @summary Complete the browser OIDC login flow
- */
-
-export function useHandleBrowserLoginCallback<TData = Awaited<ReturnType<typeof handleBrowserLoginCallback>>, TError = ErrorType<void>>(
- params?: HandleBrowserLoginCallbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof handleBrowserLoginCallback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getHandleBrowserLoginCallbackQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-
-export const getLogoutBrowserSessionUrl = () => {
-
-
-
-
-  return `/api/logout`
-}
-
-/**
- * @summary Clear the session and begin OIDC logout
- */
-export const logoutBrowserSession = async ( options?: RequestInit): Promise<unknown> => {
-
-  return customFetch<unknown>(getLogoutBrowserSessionUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getLogoutBrowserSessionQueryKey = () => {
-    return [
-    `/api/logout`
-    ] as const;
-    }
-
-
-export const getLogoutBrowserSessionQueryOptions = <TData = Awaited<ReturnType<typeof logoutBrowserSession>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof logoutBrowserSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getLogoutBrowserSessionQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof logoutBrowserSession>>> = ({ signal }) => logoutBrowserSession({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof logoutBrowserSession>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type LogoutBrowserSessionQueryResult = NonNullable<Awaited<ReturnType<typeof logoutBrowserSession>>>
-export type LogoutBrowserSessionQueryError = ErrorType<void>
-
-
-/**
- * @summary Clear the session and begin OIDC logout
- */
-
-export function useLogoutBrowserSession<TData = Awaited<ReturnType<typeof logoutBrowserSession>>, TError = ErrorType<void>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof logoutBrowserSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getLogoutBrowserSessionQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
 
 
 export const getImportAccountsUrl = () => {
@@ -649,8 +381,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-
-
   return  { mutationFn, ...mutationOptions }}
 
     export type ImportAccountsMutationResult = NonNullable<Awaited<ReturnType<typeof importAccounts>>>
@@ -696,7 +426,6 @@ export const getAccountStats = async ( options?: RequestInit): Promise<AccountSt
 
 
 
-
 export const getGetAccountStatsQueryKey = () => {
     return [
     `/api/accounts/stats`
@@ -714,7 +443,6 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getAccountStats>>> = ({ signal }) => getAccountStats({ signal, ...requestOptions });
-
 
 
 
@@ -743,11 +471,6 @@ export function useGetAccountStats<TData = Awaited<ReturnType<typeof getAccountS
 }
 
 
-
-
-
-
-
 export const getGetAccountUrl = (id: number,) => {
 
 
@@ -773,7 +496,6 @@ export const getAccount = async (id: number, options?: RequestInit): Promise<Acc
 
 
 
-
 export const getGetAccountQueryKey = (id: number,) => {
     return [
     `/api/accounts/${id}`
@@ -791,7 +513,6 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
     const queryFn: QueryFunction<Awaited<ReturnType<typeof getAccount>>> = ({ signal }) => getAccount(id, { signal, ...requestOptions });
-
 
 
 
@@ -820,11 +541,6 @@ export function useGetAccount<TData = Awaited<ReturnType<typeof getAccount>>, TE
 }
 
 
-
-
-
-
-
 export const getUpdateAccountUrl = (id: number,) => {
 
 
@@ -836,8 +552,7 @@ export const getUpdateAccountUrl = (id: number,) => {
 /**
  * @summary Update an account
  */
-export const updateAccount = async (id: number,
-    accountUpdate: AccountUpdate, options?: RequestInit): Promise<Account> => {
+export const updateAccount = async (id: number, accountUpdate: AccountUpdate, options?: RequestInit): Promise<Account> => {
 
   return customFetch<Account>(getUpdateAccountUrl(id),
   {
@@ -867,12 +582,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAccount>>, {id: number;data: BodyType<AccountUpdate>}> = (props) => {
-          const {id,data} = props ?? {};
+          const {id, data} = props ?? {};
 
           return  updateAccount(id,data,requestOptions)
         }
-
-
 
 
 
@@ -908,9 +621,9 @@ export const getDeleteAccountUrl = (id: number,) => {
 /**
  * @summary Delete an account
  */
-export const deleteAccount = async (id: number, options?: RequestInit): Promise<void> => {
+export const deleteAccount = async (id: number, options?: RequestInit): Promise<unknown> => {
 
-  return customFetch<void>(getDeleteAccountUrl(id),
+  return customFetch<unknown>(getDeleteAccountUrl(id),
   {
     ...options,
     method: 'DELETE'
@@ -945,12 +658,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-
-
   return  { mutationFn, ...mutationOptions }}
 
     export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
-
     export type DeleteAccountMutationError = ErrorType<ErrorResponse>
 
     /**
@@ -966,4 +676,3 @@ export const useDeleteAccount = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getDeleteAccountMutationOptions(options));
     }
-

@@ -19,6 +19,8 @@ export interface StoredAccount {
   status: string;
   catatan: string | null;
   createdAt: string;
+  productId: number | null;
+  soldOrderCode: string | null;
 }
 
 function headers() {
@@ -92,4 +94,17 @@ export async function saveAccounts(accounts: StoredAccount[], message: string): 
 export function nextId(accounts: StoredAccount[]): number {
   if (accounts.length === 0) return 1;
   return Math.max(...accounts.map((a) => a.id)) + 1;
+}
+
+export function formatAccountCredentials(account: StoredAccount): string {
+  const lines: string[] = [];
+  lines.push(`Nama    : ${account.nama}`);
+  if (account.uid) lines.push(`UID FB  : ${account.uid}`);
+  lines.push(`Email   : ${account.email}`);
+  lines.push(`Sandi FB: ${account.sandi}`);
+  if (account.sandi_email) lines.push(`Sandi Email: ${account.sandi_email}`);
+  if (account.kode_2fa) lines.push(`2FA     : ${account.kode_2fa}`);
+  if (account.email_pemulihan) lines.push(`Email Pemulihan: ${account.email_pemulihan}`);
+  if (account.sandi_fb) lines.push(`Sandi FB Alt: ${account.sandi_fb}`);
+  return lines.join("\n");
 }

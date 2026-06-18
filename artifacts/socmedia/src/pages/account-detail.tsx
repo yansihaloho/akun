@@ -9,12 +9,23 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
-  CP: "bg-amber-100 text-amber-700",
+  CP: "bg-green-100 text-green-700",
   ADS: "bg-blue-100 text-blue-700",
   BAN: "bg-red-100 text-red-700",
   DISABLED: "bg-orange-100 text-orange-700",
   AKTIF: "bg-emerald-100 text-emerald-700",
   SPAM: "bg-yellow-100 text-yellow-700",
+  terjual: "bg-gray-100 text-gray-500",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  CP: "HIDUP",
+  ADS: "ADS",
+  BAN: "BAN",
+  DISABLED: "NON-AKTIF",
+  AKTIF: "AKTIF",
+  SPAM: "SPAM",
+  terjual: "TERJUAL",
 };
 
 function FieldRow({
@@ -112,8 +123,17 @@ export default function AccountDetail() {
               <span
                 className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[account.status] ?? "bg-slate-100 text-slate-700"}`}
               >
-                {account.status}
+                {STATUS_LABEL[account.status] ?? account.status}
               </span>
+              {(account as unknown as { soldOrderCode?: string | null }).soldOrderCode ? (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                  Terjual
+                </span>
+              ) : (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                  Belum Terjual
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
               {account.platform === "facebook" ? (
@@ -152,7 +172,7 @@ export default function AccountDetail() {
             <FieldRow label="Email" value={account.email} copyable />
             <PasswordRow label="Sandi" value={account.sandi} />
             {account.sandi_fb && <PasswordRow label="Sandi FB" value={account.sandi_fb} />}
-            <FieldRow label="Status" value={account.status} />
+            <FieldRow label="Status" value={STATUS_LABEL[account.status] ?? account.status} />
             <FieldRow label="Platform" value={account.platform === "facebook" ? "Facebook" : "Instagram"} />
           </CardContent>
         </Card>

@@ -227,5 +227,3 @@ export const UpdateAccountResponse = zod.object({
 export const DeleteAccountParams = zod.object({
   "id": zod.coerce.number()
 })
-
-

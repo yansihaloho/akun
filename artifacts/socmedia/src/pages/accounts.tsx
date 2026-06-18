@@ -52,11 +52,26 @@ import { Plus, Upload, Download, Pencil, Trash2, Search, Filter, Eye, EyeOff } f
 import { CopyButton } from "@/components/copy-button";
 import Papa from "papaparse";
 
-const STATUS_OPTIONS = ["CP", "ADS", "BAN", "DISABLED", "AKTIF", "SPAM"];
+const STATUS_OPTIONS = ["CP", "ADS", "BAN", "DISABLED", "AKTIF", "SPAM", "terjual"];
 const PLATFORM_OPTIONS = [
   { value: "facebook", label: "Facebook" },
   { value: "instagram", label: "Instagram" },
 ];
+
+const STATUS_LABEL: Record<string, string> = {
+  CP: "HIDUP",
+  ADS: "ADS",
+  BAN: "BAN",
+  DISABLED: "NON-AKTIF",
+  AKTIF: "AKTIF",
+  SPAM: "SPAM",
+  terjual: "TERJUAL",
+};
+
+type AccountWithSold = {
+  soldOrderCode?: string | null;
+  [key: string]: unknown;
+};
 
 type AccountForm = {
   platform: "facebook" | "instagram";
@@ -91,12 +106,13 @@ const defaultForm: AccountForm = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  CP: "bg-indigo-100 text-indigo-700",
+  CP: "bg-green-100 text-green-700",
   ADS: "bg-blue-100 text-blue-700",
   BAN: "bg-red-100 text-red-700",
   DISABLED: "bg-orange-100 text-orange-700",
-  AKTIF: "bg-green-100 text-green-700",
+  AKTIF: "bg-emerald-100 text-emerald-700",
   SPAM: "bg-yellow-100 text-yellow-700",
+  terjual: "bg-gray-100 text-gray-500 line-through",
 };
 
 function MaskedCell({ value }: { value: string }) {
@@ -380,13 +396,13 @@ export default function Accounts() {
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-28 h-8 text-xs">
+          <SelectTrigger className="w-32 h-8 text-xs">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua</SelectItem>
             {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>{STATUS_LABEL[s] ?? s}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -438,9 +454,20 @@ export default function Accounts() {
                   </span>
                   <span className="font-medium text-sm truncate">{acct.nama}</span>
                 </div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_COLORS[acct.status] ?? "bg-gray-100 text-gray-700"}`}>
-                  {acct.status}
-                </span>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[acct.status] ?? "bg-gray-100 text-gray-700"}`}>
+                    {STATUS_LABEL[acct.status] ?? acct.status}
+                  </span>
+                  {(acct as unknown as AccountWithSold).soldOrderCode ? (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                      Terjual
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                      Belum Terjual
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-1 mb-1" onClick={(e) => e.stopPropagation()}>
                 <span className="text-xs text-muted-foreground truncate">{acct.email}</span>
@@ -538,9 +565,20 @@ export default function Accounts() {
                       {acct.uid ?? "—"}
                     </TableCell>
                     <TableCell>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[acct.status] ?? "bg-gray-100 text-gray-700"}`}>
-                        {acct.status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full w-fit ${STATUS_COLORS[acct.status] ?? "bg-gray-100 text-gray-700"}`}>
+                          {STATUS_LABEL[acct.status] ?? acct.status}
+                        </span>
+                        {(acct as unknown as AccountWithSold).soldOrderCode ? (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit bg-red-100 text-red-600">
+                            Terjual
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full w-fit bg-emerald-50 text-emerald-600">
+                            Belum Terjual
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs max-w-[120px] truncate">
                       {acct.catatan ?? "—"}
@@ -601,7 +639,7 @@ export default function Accounts() {
                 <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                    <SelectItem key={s} value={s}>{STATUS_LABEL[s] ?? s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -631,7 +669,7 @@ export default function Accounts() {
               <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                  <SelectItem key={s} value={s}>{STATUS_LABEL[s] ?? s}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
