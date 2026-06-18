@@ -1,14 +1,9 @@
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, Users, LogOut, Globe, X, Package, ShoppingBag, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/accounts", label: "Akun", icon: Users },
-  { href: "/admin/products", label: "Produk", icon: Package },
-  { href: "/admin/orders", label: "Pesanan", icon: ShoppingBag },
-  { href: "/admin/settings", label: "Pengaturan", icon: Settings },
-];
+type ShopStats = { pendingOrders: number };
 
 interface SidebarProps {
   onClose?: () => void;
@@ -16,6 +11,22 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const [location] = useLocation();
+
+  const { data: shopStats } = useQuery<ShopStats>({
+    queryKey: ["admin-stats"],
+    queryFn: () => fetch("/api/admin/stats", { credentials: "include" }).then((r) => r.json()),
+    refetchInterval: 30_000,
+  });
+
+  const pendingOrders = shopStats?.pendingOrders ?? 0;
+
+  const navItems = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard, badge: 0 },
+    { href: "/accounts", label: "Akun", icon: Users, badge: 0 },
+    { href: "/admin/products", label: "Produk", icon: Package, badge: 0 },
+    { href: "/admin/orders", label: "Pesanan", icon: ShoppingBag, badge: pendingOrders },
+    { href: "/admin/settings", label: "Pengaturan", icon: Settings, badge: 0 },
+  ];
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
@@ -60,7 +71,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
               )}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-red-500 text-white rounded-full">
+                  {item.badge > 99 ? "99+" : item.badge}
+                </span>
+              )}
             </Link>
           );
         })}

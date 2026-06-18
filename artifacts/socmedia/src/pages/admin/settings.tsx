@@ -10,6 +10,7 @@ type QrisSettings = {
   image: string | null;
   accountName: string;
   accountNumber: string;
+  whatsapp: string;
 };
 
 function toBase64(file: File): Promise<string> {
@@ -28,6 +29,7 @@ export default function AdminSettings() {
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [initialized, setInitialized] = useState(false);
 
   const { data: qris, isLoading } = useQuery<QrisSettings>({
@@ -39,13 +41,14 @@ export default function AdminSettings() {
     if (qris && !initialized) {
       setAccountName(qris.accountName ?? "");
       setAccountNumber(qris.accountNumber ?? "");
+      setWhatsapp(qris.whatsapp ?? "");
       if (qris.image) setPreviewSrc(qris.image);
       setInitialized(true);
     }
   }, [qris, initialized]);
 
   const saveMutation = useMutation({
-    mutationFn: (data: { image: string; accountName: string; accountNumber: string }) =>
+    mutationFn: (data: { image: string; accountName: string; accountNumber: string; whatsapp: string }) =>
       fetch("/api/admin/settings/qris", {
         method: "POST",
         credentials: "include",
@@ -78,7 +81,7 @@ export default function AdminSettings() {
       toast({ title: "Upload gambar QRIS terlebih dahulu", variant: "destructive" });
       return;
     }
-    saveMutation.mutate({ image: img, accountName, accountNumber });
+    saveMutation.mutate({ image: img, accountName, accountNumber, whatsapp });
   };
 
   const displayImage = previewSrc ?? qris?.image ?? null;
@@ -90,7 +93,7 @@ export default function AdminSettings() {
           <Settings className="w-5 h-5" />
           Pengaturan
         </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Konfigurasi pembayaran QRIS toko</p>
+        <p className="text-muted-foreground text-sm mt-0.5">Konfigurasi pembayaran & kontak toko</p>
       </div>
 
       <div className="bg-card rounded-xl border border-border p-5 space-y-5">
@@ -155,10 +158,21 @@ export default function AdminSettings() {
           />
         </div>
 
+        <div>
+          <Label className="text-xs mb-1 block">WhatsApp Admin (untuk tombol hubungi di toko)</Label>
+          <Input
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            className="h-8 text-sm"
+            placeholder="Contoh: 628123456789 (format internasional)"
+          />
+          <p className="text-[10px] text-muted-foreground mt-1">Gunakan format: 628xxxxxxxxx (tanpa + dan tanpa spasi)</p>
+        </div>
+
         <Button onClick={handleSave} disabled={saveMutation.isPending} className="w-full">
           {saveMutation.isPending ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>
-          ) : "Simpan Pengaturan QRIS"}
+          ) : "Simpan Pengaturan"}
         </Button>
       </div>
 
@@ -168,6 +182,7 @@ export default function AdminSettings() {
         <p>• Pembeli akan scan QR ini dan transfer sesuai nominal pesanan</p>
         <p>• Setelah pembeli upload bukti bayar, status otomatis berubah ke "Bukti Dikirim"</p>
         <p>• Verifikasi manual di menu Pesanan, lalu ubah status ke "Terkirim" + isi kredensial akun</p>
+        <p>• Nomor WhatsApp akan tampil sebagai tombol di halaman toko & cek pesanan</p>
       </div>
     </div>
   );

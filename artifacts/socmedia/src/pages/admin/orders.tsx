@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Clock, CheckCircle2, Package, XCircle, Loader2, Eye, ExternalLink,
-  ShoppingBag, ChevronDown,
+  ShoppingBag, ChevronDown, Search,
 } from "lucide-react";
 
 type Order = {
@@ -51,6 +52,7 @@ export default function AdminOrders() {
   const [notes, setNotes] = useState("");
   const [proofOpen, setProofOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
   const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ["admin-orders"],
@@ -58,7 +60,10 @@ export default function AdminOrders() {
     refetchInterval: 30_000,
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-orders"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    qc.invalidateQueries({ queryKey: ["admin-stats"] });
+  };
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: object }) =>
@@ -80,6 +85,7 @@ export default function AdminOrders() {
     setNewStatus(order.status);
     setCredentials(order.credentials ?? "");
     setNotes(order.notes ?? "");
+    setProofOpen(false);
   };
 
   const handleSave = () => {
@@ -94,7 +100,18 @@ export default function AdminOrders() {
     });
   };
 
-  const filtered = filterStatus === "all" ? orders : orders.filter((o) => o.status === filterStatus);
+  const filtered = orders
+    .filter((o) => filterStatus === "all" || o.status === filterStatus)
+    .filter((o) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        o.orderCode.toLowerCase().includes(q) ||
+        o.buyerName.toLowerCase().includes(q) ||
+        o.buyerWhatsapp.includes(q) ||
+        o.productName.toLowerCase().includes(q)
+      );
+    });
 
   const pendingCount = orders.filter((o) => o.status === "paid").length;
 
@@ -112,12 +129,24 @@ export default function AdminOrders() {
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">Kelola semua pesanan dari pembeli</p>
         </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari kode, nama, produk..."
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36 h-8 text-xs">
+          <SelectTrigger className="w-full sm:w-44 h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Semua</SelectItem>
+            <SelectItem value="all">Semua Status</SelectItem>
             {STATUS_OPTIONS.map((s) => (
               <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
             ))}
@@ -132,7 +161,7 @@ export default function AdminOrders() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>Tidak ada pesanan</p>
+          <p>{search || filterStatus !== "all" ? "Tidak ada pesanan yang cocok" : "Tidak ada pesanan"}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -147,12 +176,15 @@ export default function AdminOrders() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="font-mono font-bold text-sm text-foreground">{order.orderCode}</span>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1 ${cfg.color}`}>
                         <Icon className="w-3 h-3" />
                         {cfg.label}
                       </span>
+                      {order.paymentProof && order.status === "paid" && (
+                        <span className="text-xs text-blue-600 font-medium">• Ada bukti bayar</span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1">{order.productName}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -204,6 +236,7 @@ export default function AdminOrders() {
                     target="_blank"
                     rel="noreferrer"
                     className="font-medium text-green-600 flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {selectedOrder.buyerWhatsapp}
                     <ExternalLink className="w-3 h-3" />
@@ -248,18 +281,18 @@ export default function AdminOrders() {
               </div>
 
               <div>
-                <Label className="text-xs">Kredensial Akun (dikirim ke pembeli saat "Terkirim")</Label>
+                <Label className="text-xs">Kredensial Akun (tampil ke pembeli saat status "Terkirim")</Label>
                 <textarea
                   value={credentials}
                   onChange={(e) => setCredentials(e.target.value)}
                   rows={5}
                   className="w-full mt-1 px-3 py-2 text-xs font-mono border border-input rounded-md bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-                  placeholder="Email: xxx@gmail.com&#10;Sandi: xxxxx&#10;2FA: xxxxx"
+                  placeholder={"Email: xxx@gmail.com\nSandi: xxxxx\n2FA: xxxxx"}
                 />
               </div>
 
               <div>
-                <Label className="text-xs">Catatan Admin (opsional)</Label>
+                <Label className="text-xs">Catatan Admin (tidak tampil ke pembeli)</Label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -268,12 +301,18 @@ export default function AdminOrders() {
                   placeholder="Catatan internal..."
                 />
               </div>
+
+              {newStatus === "delivered" && !credentials && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
+                  ⚠️ Pastikan isi kredensial akun sebelum mengubah status ke "Terkirim" agar pembeli bisa melihat akunnya.
+                </div>
+              )}
             </div>
 
             <DialogFooter className="gap-2">
               <Button variant="outline" size="sm" onClick={() => setSelectedOrder(null)}>Tutup</Button>
               <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+                {updateMutation.isPending ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menyimpan...</> : "Simpan Perubahan"}
               </Button>
             </DialogFooter>
           </DialogContent>

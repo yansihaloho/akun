@@ -11,6 +11,7 @@ const QrisSchema = z.object({
   image: z.string().min(10),
   accountName: z.string().optional().default(""),
   accountNumber: z.string().optional().default(""),
+  whatsapp: z.string().optional().default(""),
 });
 
 router.get("/settings/qris", async (req, res) => {
